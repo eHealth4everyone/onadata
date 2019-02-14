@@ -206,9 +206,13 @@ def enketo_url(form_url,
         data=values,
         auth=(settings.ENKETO_API_TOKEN, ''),
         verify=getattr(settings, 'VERIFY_SSL', True))
+    resp_content = response.content
+    resp_content = resp_content.decode('utf-8') if hasattr(
+        resp_content, 'decode') else resp_content
+    from json.decoder import JSONDecodeError
     if response.status_code in [200, 201]:
         try:
-            data = json.loads(response.content)
+            data = json.loads(resp_content)
         except ValueError:
             pass
         else:
@@ -218,8 +222,8 @@ def enketo_url(form_url,
                 return url
     else:
         try:
-            data = json.loads(response.content)
-        except ValueError:
+            data = json.loads(resp_content)
+        except (ValueError, JSONDecodeError):
             report_exception("HTTP Error {}".format(response.status_code),
                              response.text, sys.exc_info())
             if response.status_code == 502:
